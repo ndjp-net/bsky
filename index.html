@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bluesky Checker</title>
+    <meta name="theme-color" content="#0ea5e9">
+    
+    <link rel="icon" type="image/png" href="image/icon.png">
+    <link rel="apple-touch-icon" href="image/icon.png">
+    <link rel="manifest" href="manifest.json">
+
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gradient-to-br from-slate-50 via-sky-50 to-slate-100 text-slate-800 min-h-screen flex flex-col justify-between font-sans selection:bg-sky-200">
+
+    <!-- グラスモーフィズムを取り入れたヘッダー -->
+    <header class="bg-white/70 backdrop-blur-md sticky top-0 z-50 shadow-sm border-b border-slate-200/50 py-4">
+        <div class="max-w-3xl mx-auto px-4 flex justify-between items-center">
+            <h1 class="text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-sky-500 to-indigo-600 flex items-center gap-2 tracking-tight">
+                Bluesky Checker <span class="text-xs bg-gradient-to-r from-sky-500 to-indigo-500 text-white px-2.5 py-0.5 rounded-full ml-2 shadow-sm">PRO</span>
+            </h1>
+        </div>
+    </header>
+
+    <main class="max-w-3xl w-full mx-auto px-4 py-10 flex-grow">
+        <!-- 検索エリア -->
+        <div class="bg-white/80 backdrop-blur-sm p-8 rounded-3xl shadow-xl border border-white mb-8 transition-all hover:shadow-2xl">
+            <label for="handle" class="block text-sm font-bold text-slate-600 mb-3 ml-1">ID または DID を入力</label>
+            <div class="flex flex-col sm:flex-row gap-3">
+                <input type="text" id="handle" placeholder="username.bsky.social" 
+                    class="flex-grow px-5 py-3 border border-slate-200 bg-white/50 rounded-2xl focus:outline-none focus:ring-4 focus:ring-sky-500/20 focus:border-sky-500 text-base shadow-inner transition-all">
+                <button id="searchBtn" class="bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold px-8 py-3 rounded-2xl shadow-lg hover:shadow-sky-500/30 transform hover:-translate-y-0.5 transition-all duration-200 cursor-pointer">
+                    検索
+                </button>
+            </div>
+        </div>
+
+        <!-- ローディング -->
+        <div id="loading" class="hidden text-center py-16">
+            <div class="relative w-12 h-12 mx-auto">
+                <div class="absolute inset-0 rounded-full border-4 border-slate-100"></div>
+                <div class="absolute inset-0 rounded-full border-4 border-sky-500 border-t-transparent animate-spin"></div>
+            </div>
+            <p class="text-slate-500 mt-4 font-medium animate-pulse">アカウント情報を取得中...</p>
+        </div>
+
+        <!-- エラーメッセージ -->
+        <div id="error" class="hidden bg-red-50 border-l-4 border-red-500 text-red-700 p-5 rounded-2xl shadow-sm mb-8 flex items-center gap-3">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span class="font-medium">アカウントが見つからないか、入力内容に誤りがあります。</span>
+        </div>
+
+        <!-- 結果表示エリア -->
+        <div id="result" class="hidden bg-white/90 backdrop-blur-md rounded-[2rem] shadow-2xl border border-white overflow-hidden mb-8 transition-all duration-500 transform scale-100">
+            <!-- バナー -->
+            <div id="banner" class="h-48 bg-slate-200 profile-banner relative">
+                <div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
+            </div>
+
+            <div class="p-8 relative pt-0">
+                <!-- プロフィール上部 -->
+                <div class="flex justify-between items-end -mt-16 mb-6 px-2 relative z-10">
+                    <img id="avatar" src="" alt="Avatar" class="w-32 h-32 rounded-full border-4 border-white object-cover shadow-xl ring-4 ring-sky-50/50">
+                    <a id="profileLink" href="" target="_blank" rel="noopener noreferrer" class="bg-white hover:bg-slate-50 text-sky-600 font-bold text-sm px-5 py-2.5 rounded-full shadow-md border border-slate-100 hover:shadow-lg transform hover:-translate-y-0.5 transition-all flex items-center gap-1">
+                        Blueskyで開く
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                    </a>
+                </div>
+
+                <div class="mb-6 px-2">
+                    <h2 id="displayName" class="text-3xl font-extrabold text-slate-900 tracking-tight"></h2>
+                    <p id="fullHandle" class="text-sky-600 font-mono text-sm mt-1 bg-sky-50 inline-block px-2 py-0.5 rounded-md"></p>
+                </div>
+
+                <!-- 統計情報 -->
+                <div class="flex flex-wrap gap-4 mb-8 text-sm text-slate-600 px-2">
+                    <div class="flex flex-col"><span id="followersCount" class="font-extrabold text-slate-900 text-xl">0</span> <span class="text-xs font-medium uppercase tracking-wider">フォロワー</span></div>
+                    <div class="w-px bg-slate-200"></div>
+                    <div class="flex flex-col"><span id="followsCount" class="font-extrabold text-slate-900 text-xl">0</span> <span class="text-xs font-medium uppercase tracking-wider">フォロー</span></div>
+                    <div class="w-px bg-slate-200"></div>
+                    <div class="flex flex-col"><span id="postsCount" class="font-extrabold text-slate-900 text-xl">0</span> <span class="text-xs font-medium uppercase tracking-wider">投稿</span></div>
+                </div>
+
+                <div class="mb-8">
+                    <p id="description" class="whitespace-pre-wrap text-slate-700 leading-relaxed text-base bg-slate-50/50 p-5 rounded-2xl border border-slate-100/50"></p>
+                </div>
+
+                <div class="space-y-8 px-2">
+                    <!-- アセット & ステータス -->
+                    <div>
+                        <h3 class="text-sm font-black text-slate-800 tracking-wider mb-4 flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-sky-500"></span>
+                            アセット & ステータス
+                        </h3>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+                            <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                                <span class="block text-xs font-bold text-slate-400 mb-1">スターターパック</span>
+                                <span id="starterPacks" class="font-extrabold text-slate-800 text-lg">0</span>
+                            </div>
+                            <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                                <span class="block text-xs font-bold text-slate-400 mb-1">カスタムフィード</span>
+                                <span id="feedgens" class="font-extrabold text-slate-800 text-lg">0</span>
+                            </div>
+                            <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                                <span class="block text-xs font-bold text-slate-400 mb-1">リスト</span>
+                                <span id="lists" class="font-extrabold text-slate-800 text-lg">0</span>
+                            </div>
+                            <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                                <span class="block text-xs font-bold text-slate-400 mb-1">固定ポスト</span>
+                                <span id="pinnedPost" class="font-extrabold text-slate-800 text-lg">なし</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- メタデータ & 設定 -->
+                    <div>
+                        <h3 class="text-sm font-black text-slate-800 tracking-wider mb-4 flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                            メタデータ & 設定
+                        </h3>
+                        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm text-sm space-y-4">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                <div>
+                                    <span class="font-bold text-slate-400 block text-xs mb-1">DM (チャット) 受信設定</span>
+                                    <span id="chatAllow" class="text-slate-800 font-bold bg-slate-100 px-3 py-1 rounded-lg inline-block"></span>
+                                </div>
+                                <div>
+                                    <span class="font-bold text-slate-400 block text-xs mb-1">付与されているラベル</span>
+                                    <div id="labels" class="flex flex-wrap gap-2 mt-1"></div>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
+                                <div>
+                                    <span class="font-bold text-slate-400 block text-xs mb-1">アカウント作成日時</span>
+                                    <span id="createdAt" class="text-slate-700 font-mono text-sm"></span>
+                                </div>
+                                <div>
+                                    <span class="font-bold text-slate-400 block text-xs mb-1">最終インデックス日時</span>
+                                    <span id="indexedAt" class="text-slate-700 font-mono text-sm"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AT Protocol レベル情報 -->
+                    <div>
+                        <h3 class="text-sm font-black text-slate-800 tracking-wider mb-4 flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-slate-800"></span>
+                            AT Protocol レベル情報
+                        </h3>
+                        <div class="bg-slate-900 text-slate-300 p-6 rounded-2xl font-mono text-xs space-y-4 break-all shadow-xl border border-slate-800 relative overflow-hidden">
+                            <!-- 装飾用の光彩効果 -->
+                            <div class="absolute -top-10 -right-10 w-32 h-32 bg-sky-500/20 rounded-full blur-3xl"></div>
+                            
+                            <div class="relative z-10">
+                                <span class="text-sky-400 font-bold block mb-1">DID (分散ID):</span>
+                                <span id="did" class="text-white bg-slate-800/50 px-2 py-1 rounded"></span>
+                            </div>
+                            <div class="relative z-10">
+                                <span class="text-sky-400 font-bold block mb-1">PDS (ホストサーバー):</span>
+                                <span id="pds" class="text-white"></span>
+                            </div>
+                            <div class="relative z-10">
+                                <span class="text-sky-400 font-bold block mb-1">エイリアス (Also Known As):</span>
+                                <span id="alsoKnownAs" class="text-slate-400"></span>
+                            </div>
+                            <div class="relative z-10">
+                                <span class="text-sky-400 font-bold block mb-1">公開鍵 (Verification Method):</span>
+                                <span id="verificationMethod" class="text-slate-400 leading-relaxed"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="text-center py-8 text-sm font-medium text-slate-400 bg-white/50 backdrop-blur-sm border-t border-slate-200/50">
+        &copy; 神罪閣下製作委員会
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "Bluesky Checker",
+  "short_name": "Bluesky Checker",
+  "description": "Blueskyのアカウント詳細情報を確認できるツールです",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#0284c7",
+  "icons": [
+    {
+      "src": "image/icon.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
